@@ -1,6 +1,8 @@
 # WebMeet
 A web component that can be embedded in a web site to enable live meetings with Openfire users
 
+<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen3.png" />
+
 ## Introduction
 This is a full-featured web chat component that can be added to any web page. 
 The component allows visitors to a web site to chat directly with members of a work group or team in a multi-user chat (MUC) through an integrated web client. The web component can be customised and re-branded with HTML/CSS.
@@ -22,7 +24,7 @@ Let’s assume that you have the following pre-existing index.html page on your 
   </body>
 </html>
 `````
-Now, you want to add the WebMeet component. You can do that before the </body> tag with lines of code:
+Now, you want to add the WebMeet component. You can do that before the </body> tag with following 2 lines of code:
 
 `````
 <html>
@@ -36,12 +38,16 @@ Now, you want to add the WebMeet component. You can do that before the </body> t
   </body>
 </html>
 `````
+<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen1.png" />
+
 The <script/> tag above brings in the WebMeet web control and the <link/> tag brings in the default css file to style it. 
 Copy the verto and ofmeet folders to the same folder as your index.html page. Thats it!!
 
+<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen2.png" />
+
 ## Additional considerations
 
-The defult configuration for converse.js is to assume that Openfire and FreeSWITCH are on the same host as the web server and uses window.hostname as the XMPP and SIP domain names. Edit ofmeet/convese.html to match your preference.
+1. The defult configuration for converse.js is to assume that Openfire and FreeSWITCH are on the same host as the web server and uses window.hostname as the XMPP and SIP domain names. Edit ofmeet/convese.html to match your preference.
 
 `````
     converse.initialize({
@@ -70,3 +76,18 @@ The defult configuration for converse.js is to assume that Openfire and FreeSWIT
         ofswitch: false
     });
 `````
+
+2. If you set ofswitch as true to indicate you want to use Verto Communicator instead of Openfire Meetings, then you have an additional step to modify the config.json file for VC. These are my settings with the ofswitch plugin for openfire.
+
+`````
+{
+    "extension": "guest",
+    "login": "guest",
+    "password": "guest",    
+    "autologin": true,
+    "autocall": "3000",    
+    "googlelogin": false,
+    "wsURL": "wss://desktop-545pc5b:7443/sip/proxy?url=ws://192.168.1.252:8081"    
+}
+`````
+3. There is a lot more to make this secure for public use, but that is beyond the scope of this readme.
