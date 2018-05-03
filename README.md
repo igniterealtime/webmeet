@@ -99,4 +99,4 @@ The toolbar offers you the following messaging/chat features
     "wsURL": "wss://desktop-545pc5b:7443/sip/proxy?url=ws://192.168.1.252:8081"    
 }
 `````
-3. There is a lot more to make this secure for public use, but that is beyond the scope of this readme.
+3. There is a lot more to make this secure for public internet use, but that is beyond the scope of this readme.
