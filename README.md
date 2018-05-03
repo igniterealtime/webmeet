@@ -5,7 +5,7 @@ A web component that can be embedded in a web site to enable live meetings with 
 This is a full-featured web chat component that can be added to any web page. 
 The component allows visitors to a web site to chat directly with members of a work group or team in a multi-user chat (MUC) through an integrated web client. The web component can be customised and re-branded with HTML/CSS.
 
-It embeds [http://www.conversejs.org](converse.js) in the web site to handle the messaging with Openfire and depeding on configuration, it can open a windows for a video-conference using [http://github.com/igniterealtime/Openfire-Meetings](Openfire Meetings) or a telephone conference call using [http://freeswitch.org/confluence/display/FREESWITCH/Verto+Communicator](FreeSWITCH Verto Communicator).
+It embeds [converse.js](http://www.conversejs.org) in the web site to handle the messaging with Openfire and depeding on configuration, it can open a windows for a video-conference using [Openfire Meetings](http://github.com/igniterealtime/Openfire-Meetings) or a telephone conference call using [FreeSWITCH Verto Communicator](http://freeswitch.org/confluence/display/FREESWITCH/Verto+Communicator).
 
 
 This is how to add webmeet to your web site in a few simple steps.

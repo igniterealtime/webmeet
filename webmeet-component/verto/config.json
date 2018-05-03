@@ -1,0 +1,9 @@
+{
+    "extension": "guest",
+    "login": "guest",
+    "password": "guest",    
+    "autologin": true,
+    "autocall": "3000",    
+    "googlelogin": false,
+    "wsURL": "wss://desktop-545pc5b:7443/sip/proxy?url=ws://192.168.1.252:8081"    
+}
