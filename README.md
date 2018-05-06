@@ -5,12 +5,12 @@ A web component that can be embedded in a web site to enable live meetings with 
 
 ## Introduction
 This is a full-featured web chat component that can be added to any web page. 
-The component allows visitors to a web site to chat directly with members of a work group or team in a multi-user chat (MUC) through an integrated web client. The web component can be customised and re-branded with HTML/CSS.
+The component allows visitors of a web site to chat directly with members of a work group or team in a multi-user chat (MUC) through an integrated web client. The web component can be customised and re-branded with HTML/CSS.
 
-It embeds [converse.js](http://www.conversejs.org) in the web site to handle the messaging with Openfire and depeding on configuration, it can open a windows for a video-conference using [Openfire Meetings](http://github.com/igniterealtime/Openfire-Meetings) or a telephone conference call using [FreeSWITCH Verto Communicator](http://freeswitch.org/confluence/display/FREESWITCH/Verto+Communicator).
+It embeds [converse.js](http://www.conversejs.org) in the web site to handle the messaging with Openfire and depending on the configuration, it can open a window for a video-conference using [Openfire Meetings](http://github.com/igniterealtime/Openfire-Meetings) or a telephone conference call using [FreeSWITCH Verto Communicator](http://freeswitch.org/confluence/display/FREESWITCH/Verto+Communicator).
 
 
-This is how to add webmeet to your web site in a few simple steps.
+This is how to add WebMeet to your web site in a few simple steps.
 
 ## How to do it
 
@@ -43,11 +43,11 @@ Now, you want to add the WebMeet component. You can do that before the </body> t
 The <script/> tag above brings in the WebMeet web control and the <link/> tag brings in the default css file to style it. 
 Copy the verto and ofmeet folders to the same folder as your index.html page. Thats it!! Reload your web page.
 
-You should nw see a blue chat bubble that remains on the bottom right side of your web page as you scroll up and down your web page. Click on it to open the chat window. Enter a nick name for the multi-user chat and hit enter.
+You should now see a blue chat bubble that remains on the bottom right side of your web page as you scroll up and down your web page. Click on it to open the chat window. Enter a nick name for the multi-user chat and hit enter.
 
 <img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen2.png" />
 
-The toolbar offers you the following messaging/chat features
+The toolbar offers you the following messaging/chat features:
 
 1. emojis
 2. ofmeet or verto audio/video/telephone conference
@@ -56,7 +56,7 @@ The toolbar offers you the following messaging/chat features
 
 ## Additional considerations
 
-1. The defult configuration for converse.js is to assume that Openfire and FreeSWITCH are on the same host as the web server and uses window.hostname as the XMPP and SIP domain names. Edit ofmeet/convese.html to match your preference.
+1. The default configuration for Converse.js is to assume that Openfire and FreeSWITCH are on the same host as the web server and uses window.hostname as the XMPP and SIP domain names. Edit ofmeet/converse.html to match your preference.
 
 `````
     converse.initialize({
@@ -86,7 +86,7 @@ The toolbar offers you the following messaging/chat features
     });
 `````
 
-2. If you set ofswitch as true to indicate you want to use Verto Communicator instead of Openfire Meetings, then you have an additional step to modify the config.json file for VC. These are my settings with the ofswitch plugin for openfire.
+2. If you set ofswitch as true to indicate you want to use Verto Communicator instead of Openfire Meetings, then you have an additional step to modify the config.json file for VC. These are my settings with the ofswitch plugin for Openfire.
 
 `````
 {
