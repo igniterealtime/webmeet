@@ -41,7 +41,7 @@ Now, you want to add the WebMeet component. You can do that before the </body> t
 <img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen1.png" />
 
 The <script/> tag above brings in the WebMeet web control and the <link/> tag brings in the default css file to style it. 
-Copy the verto and ofmeet folders to the same folder as your index.html page. Thats it!! Reload your web page.
+Copy the verto and webmeet folders to the same folder as your index.html page. Thats it!! Reload your web page.
 
 You should now see a blue chat bubble that remains on the bottom right side of your web page as you scroll up and down your web page. Click on it to open the chat window. Enter a nick name for the multi-user chat and hit enter.
 
@@ -53,6 +53,8 @@ The toolbar offers you the following messaging/chat features:
 2. ofmeet or verto audio/video/telephone conference
 3. upload files
 4. exit and return to chat bubble
+
+<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen4.png" />
 
 ## Additional considerations
 
