@@ -2,8 +2,8 @@ window.addEventListener("load", function()
 {
     if (config.uport)
     {
-        var clientId = "2p1psGHt9J5NBdPDQejSVhpsECXLxLaVQSo";
-        var signer = "46445273c02e4c0594ef6a441ecbcd327f0f78ba58b3139e027f0b23c199ea5f";
+        var clientId = "<YOUR UPORT CLIENT ID>";
+        var signer = "<YOUR UPORT APP SIGNER>";
 
         uport = new uportconnect.Connect("Pade", {clientId: clientId, signer: uportconnect.SimpleSigner(signer)});
 
