@@ -82,7 +82,32 @@
              *           "initialize_message": "My plugin has been initialized"
              *      });
              */
-            //console.log(this._converse.initialize_message);
+
+            _converse.on('messageAdded', function (data) {
+                // The message is at `data.message`
+                // The original chatbox is at `data.chatbox`.
+
+                var message = data.message;
+
+                if (message.attributes.message)
+                {
+                    //console.log("messageAdded", message);
+
+                    if (message.attributes.nick && !message.vcard.attributes.fullname) // no vcard
+                    {
+                        message.vcard.attributes.image = createAvatar(message.vcard.attributes.image, message.attributes.nick);
+                    }
+
+                    if (!document.hasFocus() && window.parent && window.parent.ofmeet)
+                    {
+                        window.parent.ofmeet.doBadge(++messageCount);
+                    } else {
+                        messageCount = 0;
+                    }
+                }
+            });
+
+            console.log("webmeet plugin is ready");
 
             /* Besides `_converse.api.settings.update`, there is also a
              * `_converse.api.promises.add` method, which allows you to
@@ -218,28 +243,6 @@
                     jitsiDiv.src = url;
                     jitsiDiv.style.display = "inline";
 
-                },
-
-                showMessage: function showMessage(message) {
-
-                    if (message.attributes.message)
-                    {
-                        //console.log("showMessage",message);
-
-                        if (message.attributes.nick && !message.vcard.attributes.fullname) // no vcard
-                        {
-                            message.vcard.attributes.image = createAvatar(message.vcard.attributes.image, message.attributes.nick);
-                        }
-
-                        if (!document.hasFocus() && window.parent && window.parent.ofmeet)
-                        {
-                            window.parent.ofmeet.doBadge(++messageCount);
-                        } else {
-                            messageCount = 0;
-                        }
-                    }
-
-                    return this.__super__.showMessage.apply(this, arguments);
                 },
 
                 renderToolbar: function renderToolbar(toolbar, options) {
