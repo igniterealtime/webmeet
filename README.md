@@ -1,7 +1,7 @@
 # WebMeet
 A web component that can be embedded in a web site to enable live meetings with Openfire users
 
-<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen3.png" />
+<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen5.png" />
 
 ## Introduction
 This is a full-featured web chat component that can be added to any web page. 

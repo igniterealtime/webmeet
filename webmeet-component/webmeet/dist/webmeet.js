@@ -12,7 +12,7 @@ window.addEventListener("load", function()
 
             document.getElementById("loader").style.display = "inline";
 
-            config.uport_credentials = credentials;
+            config.uport_data = {name: credentials.name, email: credentials.email, phone: credentials.phone, country: credentials.country, avatar: credentials.avatar ? credentials.avatar.uri : null};
 
             if (config.auto_join_rooms && config.auto_join_rooms[0])
             {
@@ -35,7 +35,7 @@ window.addEventListener("load", function()
                 var url = "https://" + location.host + "/rest/api/restapi/v1/ask/uport/register";
                 var options = {method: "POST", body: JSON.stringify({name: credentials.name, email: credentials.email, phone: credentials.phone, country: credentials.country, address: credentials.address, publicKey: credentials.publicKey, avatar: credentials.avatar, password: ""})};
 
-                console.log("register new user", credentials);
+                //console.log("register new user", credentials);
 
                 fetch(url, options).then(function(response){ return response.text()}).then(function(userpass)
                 {
