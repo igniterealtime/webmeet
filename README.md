@@ -45,7 +45,7 @@ Copy the verto and webmeet folders to the same folder as your index.html page. T
 
 You should now see a blue chat bubble that remains on the bottom right side of your web page as you scroll up and down your web page. Click on it to open the chat window. Enter a nick name for the multi-user chat and hit enter.
 
-<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen2.png" />
+<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen3.png" />
 
 The toolbar offers you the following messaging/chat features:
 
