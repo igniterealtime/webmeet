@@ -7,7 +7,7 @@ A web component that can be embedded in a web site to enable live meetings with 
 This is a full-featured web chat component that can be added to any web page. 
 The component allows visitors of a web site to chat directly with members of a work group or team in a multi-user chat (MUC) through an integrated web client. The web component can be customised and re-branded with HTML/CSS.
 
-It embeds [converse.js](http://www.conversejs.org) in the web site to handle the messaging with Openfire and depending on the configuration, it can open a window for a video-conference using [Openfire Meetings](http://github.com/igniterealtime/Openfire-Meetings) or a telephone conference call using [FreeSWITCH Verto Communicator](http://freeswitch.org/confluence/display/FREESWITCH/Verto+Communicator).
+It embeds [converse.js](http://www.conversejs.org) in the web site to handle the messaging with Openfire and depending on the configuration, it can initiate a video-conference using [Openfire Meetings](http://github.com/igniterealtime/Openfire-Meetings) or [FreeSWITCH Verto Communicator](http://freeswitch.org/confluence/display/FREESWITCH/Verto+Communicator) or dialback with SIP to a telephone number.
 
 
 This is how to add WebMeet to your web site in a few simple steps.
@@ -50,8 +50,9 @@ You should now see a blue chat bubble that remains on the bottom right side of y
 The toolbar offers you the following messaging/chat features:
 
 1. emojis
-2. ofmeet or verto audio/video/telephone conference
-3. upload files
+2. ofmeet or verto audio/video conference
+3. SIP telephone callback
+4. upload files
 4. exit and return to chat bubble
 
 <img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen4.png" />

@@ -13,7 +13,7 @@
 
 .lwc-chat-button {
   border-radius: 0;
-  background-color: #00AFF0;
+  background-color: orange;
   display: inline-flex;
   font-size: 12px;
   padding: 4px 12px;
