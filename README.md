@@ -38,7 +38,7 @@ Now, you want to add the WebMeet component. You can do that before the </body> t
 `````
 
 The <script/> tag above brings in the WebMeet web control and the <link/> tag brings in the default css file to style it. 
-Copy the verto and webmeet folders to the same folder as your index.html page. Thats it!! Reload your web page.
+Copy the webmeet, jitsimeet, verto and phone folders to the same folder as your index.html page. Thats it!! Reload your web page.
 
 You should now see a coloured chat bubble that remains on the bottom right side of your web page as you scroll up and down your web page. Click on it to open the chat window. Enter a nick name for the multi-user chat and hit enter.
 
@@ -90,7 +90,7 @@ The toolbar offers you the following messaging/chat features:
     });
 `````
 
-2. To configure SIP.js for telephone call back using CTX-Phone, configure the .../phone/scripts/config.js file
+2. To configure SIP.js for telephone call back using CTX-Phone, configure the .../phone/scripts/config.js file to connect to your Asterisk or FreeSWITCH PBX.
 
 `````
 var user = {
