@@ -1,13 +1,11 @@
 # WebMeet
 A web component that can be embedded in a web site to enable live meetings with Openfire users
 
-<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen5.png" />
-
 ## Introduction
 This is a full-featured web chat component that can be added to any web page. 
 The component allows visitors of a web site to chat directly with members of a work group or team in a multi-user chat (MUC) through an integrated web client. The web component can be customised and re-branded with HTML/CSS.
 
-It embeds [converse.js](http://www.conversejs.org) in the web site to handle the messaging with Openfire and depending on the configuration, it can initiate a video-conference using [Openfire Meetings](http://github.com/igniterealtime/Openfire-Meetings) or [FreeSWITCH Verto Communicator](http://freeswitch.org/confluence/display/FREESWITCH/Verto+Communicator) or dialback with SIP to a telephone number.
+It embeds [converse.js](http://www.conversejs.org) in the web site to handle the messaging with Openfire and depending on the configuration, it can initiate a video-conference using [Openfire Meetings](http://github.com/igniterealtime/Openfire-Meetings) or [FreeSWITCH Verto Communicator](http://freeswitch.org/confluence/display/FREESWITCH/Verto+Communicator) or dialback with SIP (CTX-Phone) to a telephone number.
 
 
 This is how to add WebMeet to your web site in a few simple steps.
@@ -38,14 +36,11 @@ Now, you want to add the WebMeet component. You can do that before the </body> t
   </body>
 </html>
 `````
-<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen1.png" />
 
 The <script/> tag above brings in the WebMeet web control and the <link/> tag brings in the default css file to style it. 
 Copy the verto and webmeet folders to the same folder as your index.html page. Thats it!! Reload your web page.
 
-You should now see a blue chat bubble that remains on the bottom right side of your web page as you scroll up and down your web page. Click on it to open the chat window. Enter a nick name for the multi-user chat and hit enter.
-
-<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen3.png" />
+You should now see a coloured chat bubble that remains on the bottom right side of your web page as you scroll up and down your web page. Click on it to open the chat window. Enter a nick name for the multi-user chat and hit enter.
 
 The toolbar offers you the following messaging/chat features:
 
@@ -55,7 +50,13 @@ The toolbar offers you the following messaging/chat features:
 4. upload files
 4. exit and return to chat bubble
 
+## Screen Shots
+
+<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen1.png" />
+<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen3.png" />
 <img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen4.png" />
+<img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen5.png" />
+
 
 ## Additional considerations
 
@@ -89,7 +90,20 @@ The toolbar offers you the following messaging/chat features:
     });
 `````
 
-2. If you set ofswitch as true to indicate you want to use Verto Communicator instead of Openfire Meetings, then you have an additional step to modify the config.json file for VC. These are my settings with the ofswitch plugin for Openfire.
+2. To configure SIP.js for telephone call back using CTX-Phone, configure the .../phone/scripts/config.js file
+
+`````
+var user = {
+    Destination : "3001",
+    User        : "1008",
+    Pass        : "1234",
+    Realm       : location.hostname,
+    Display     : "Guest",
+    WSServer    : "wss://" + location.host + "/sip/proxy?url=ws://" + location.hostname + ":5066"
+};
+`````
+
+3. If you set ofswitch as true to indicate you want to use Verto Communicator instead of Openfire Meetings, then you have an additional step to modify the config.json file for VC. These are my settings with the ofswitch plugin for Openfire.
 
 `````
 {
@@ -102,4 +116,4 @@ The toolbar offers you the following messaging/chat features:
     "wsURL": "wss://desktop-545pc5b:7443/sip/proxy?url=ws://192.168.1.252:8081"    
 }
 `````
-3. There is a lot more to make this secure for public internet use, but that is beyond the scope of this readme.
+4. There is a lot more to make this secure for public internet use, but that is beyond the scope of this readme.
