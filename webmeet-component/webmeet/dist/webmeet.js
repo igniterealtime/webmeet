@@ -5,6 +5,7 @@ window.addEventListener("load", function()
         var clientId = "2p1psGHt9J5NBdPDQejSVhpsECXLxLaVQSo";
         var permission = "Wa1l7M9NoGwcxxdX";
         var server = config.bosh_service_url.split("/")[2];
+        var avatar = null;
 
         var url = "https://" + server + "/rest/api/restapi/v1/ask/uport/pade/" + clientId;
         var options = {method: "GET", headers: {"authorization": permission}};
@@ -15,7 +16,8 @@ window.addEventListener("load", function()
 
             window.uport = new uportconnect.Connect("Pade", {clientId: clientId, signer: uportconnect.SimpleSigner(signer)});
 
-            window.uport.requestCredentials({notifications: true, verified: ['registration'], requested: ['name', 'email', 'phone', 'country', 'avatar']}).then((credentials) => {
+            window.uport.requestCredentials({notifications: true, verified: ['registration'], requested: ['name', 'email', 'phone', 'country', 'avatar']}).then((credentials) => 
+            {
                 //console.log("Credentials", credentials);
 
                 document.getElementById("loader").style.display = "inline";
@@ -26,63 +28,115 @@ window.addEventListener("load", function()
                 {
                     config.auto_join_rooms[0] = {jid: config.auto_join_rooms[0], nick: credentials.name};
                 }
-
-                if (credentials.registration)
+                
+                window.localStorage["uport.address"] =  credentials.address;
+                window.localStorage["uport.email"] =    credentials.email;
+                window.localStorage["uport.phone"] =    credentials.phone;
+                window.localStorage["uport.country"] =  credentials.country;
+                window.localStorage["uport.name"]    =  credentials.name;      
+                
+                if (credentials.avatar && credentials.avatar.uri)
                 {
-                    //console.log("login existing user", credentials.registration);
+                    avatar = credentials.avatar.uri;
+                    window.localStorage["uport.avatar"] = avatar;
+                }                
 
-                    config.authentication = "login";
-                    config.jid = credentials.registration.xmpp;
-                    config.password = credentials.registration.access;
+                if (credentials.registration && credentials.registration.xmpp)
+                {
+                    if (credentials.registration.xmpp.indexOf("@" + config.locked_domain) > -1)
+                    {
+                        //console.log("login existing user", credentials.registration);
 
-                    document.getElementById("loader").style.display = "none";
-                    converse.initialize(config);
+                        config.authentication = "login";
+                        config.jid = credentials.registration.xmpp;
+                        config.password = credentials.registration.access;
+                        
+                        // for jitsi meet
+                        
+                        localStorage.setItem("xmpp_username_override", credentials.registration.xmpp);
+                        localStorage.setItem("xmpp_password_override", credentials.registration.access);                        
+
+                        document.getElementById("loader").style.display = "none";
+                        converse.initialize(config);
+                        
+                    } else {
+                        console.error("uPort credentials are not for server " + server + ", found " + credentials.registration.xmpp); 
+                        document.getElementById("loader").style.display = "none";
+                        converse.initialize(config);                        
+                    }
+                    
 
                 } else {
 
-                    var url = "https://" + server + "/rest/api/restapi/v1/ask/uport/register";
-                    var options = {method: "POST", headers: {"authorization": permission}, body: JSON.stringify({name: credentials.name, email: credentials.email, phone: credentials.phone, country: credentials.country, address: credentials.address, publicKey: credentials.publicKey, avatar: credentials.avatar, password: ""})};
+                    var web3 = window.uport.getWeb3();
+                    var account = null;
 
-                    //console.log("register new user", credentials);
-
-                    fetch(url, options).then(function(response){ return response.text()}).then(function(userpass)
+                    web3.eth.getAccounts((error, result) =>
                     {
-                        try {
-                            userpass = JSON.parse(userpass);
+                        console.log("account", account, error);
 
-                            //console.log('uport register ok', userpass);
+                        if (error) {
+                            console.error('Account error', error);
+                            document.getElementById("loader").style.display = "none";
+                            converse.initialize(config);     
 
-                            window.uport.attestCredentials({
-                                sub: credentials.address,
-                                claim: {registration: {username: userpass.username, access: userpass.password, xmpp: userpass.username + "@" + config.locked_domain}},
-                                exp: new Date().getTime() + 30 * 24 * 60 * 60 * 1000
+                        } else {
+                            account = result[0];
+                            
+                            window.localStorage["uport.account"] =  account;  
+                                            
+                            console.log('Account:' + account);                
 
-                            }).then((result) => {
-                                console.log('attestCredentials result', result);
+                            var url = "https://" + server + "/rest/api/restapi/v1/ask/uport/register";
+                            var options = {method: "POST", headers: {"authorization": permission}, body: JSON.stringify({name: credentials.name, email: credentials.email, phone: credentials.phone, country: credentials.country, address: credentials.address, publicKey: credentials.publicKey, avatar: avatar, password: "", account: account})};
 
-                                config.authentication = "login";
-                                config.jid = userpass.username + "@" + config.locked_domain;
-                                config.password = userpass.password;
+                            //console.log("register new user", credentials);
 
-                                document.getElementById("loader").style.display = "none";
-                                converse.initialize(config);
+                            fetch(url, options).then(function(response){ return response.text()}).then(function(userpass)
+                            {
+                                try {
+                                    userpass = JSON.parse(userpass);
+
+                                    //console.log('uport register ok', userpass);
+
+                                    window.uport.attestCredentials({
+                                        sub: credentials.address,
+                                        claim: {registration: {username: userpass.username, access: userpass.password, xmpp: userpass.username + "@" + config.locked_domain}},
+                                        exp: new Date().getTime() + 30 * 24 * 60 * 60 * 1000
+
+                                    }).then((result) => {
+                                        console.log('attestCredentials result', result);
+
+                                        config.authentication = "login";
+                                        config.jid = userpass.username + "@" + config.locked_domain;
+                                        config.password = userpass.password;
+                                        
+                                        // for jitsi meet
+
+                                        localStorage.setItem("xmpp_username_override", userpass.username + "@" + config.locked_domain);
+                                        localStorage.setItem("xmpp_password_override", userpass.password);                        
+                                        
+                                        document.getElementById("loader").style.display = "none";
+                                        converse.initialize(config);
+
+                                    }).catch(function (err) {
+                                        console.error('attestCredentials error', err);
+                                        document.getElementById("loader").style.display = "none";
+                                        converse.initialize(config);
+                                    });
+
+                                } catch (e) {
+                                    console.error('Credentials error', e);
+                                    document.getElementById("loader").style.display = "none";
+                                    converse.initialize(config);
+                                }
 
                             }).catch(function (err) {
-                                console.error('attestCredentials error', err);
+                                console.error('Credentials error', err);
                                 document.getElementById("loader").style.display = "none";
                                 converse.initialize(config);
                             });
-
-                        } catch (e) {
-                            console.error('Credentials error', e);
-                            document.getElementById("loader").style.display = "none";
-                            converse.initialize(config);
                         }
-
-                    }).catch(function (err) {
-                        console.error('Credentials error', err);
-                        document.getElementById("loader").style.display = "none";
-                        converse.initialize(config);
                     });
                 }
 

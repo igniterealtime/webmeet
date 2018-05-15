@@ -1,12 +1,12 @@
 var config = {
 
     hosts: {
-        domain: 'desktop-545pc5b',
-        muc: 'conference.desktop-545pc5b'
+        domain: location.hostname,
+        muc: 'conference.' + location.hostname
     },
 
-    bosh: 'wss://desktop-545pc5b:7443/ws/',
-    clientNode: 'http://jitsi.org/jitsimeet',
+    bosh: 'wss://' + location.host + '/ws/',
+    clientNode: 'webmeet',
 
     disableSuspendVideo: true,
     desktopSharingChromeExtId: null,
