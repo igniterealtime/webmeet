@@ -4,9 +4,20 @@
 
 var ofmeet = (function(of)
 {
-    var firstTime = true;
-    var firstTrack = true;
-    var participants = {}
+    var room = urlParam("room");
+
+    var recordAudio = JSON.parse(window.localStorage["webmeet_record_audio"]);
+    var recordVideo = JSON.parse(window.localStorage["webmeet_record_video"]);
+    var enableTranscription = JSON.parse(window.localStorage["webmeet_transcription"]);
+    var enableCaptions = JSON.parse(window.localStorage["webmeet_captions"]);
+    var enableRecord = JSON.parse(window.localStorage["webmeet_record"]);
+
+    function urlParam(name)
+    {
+        var results = new RegExp('[\\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (!results) { return undefined; }
+        return unescape(results[1] || undefined);
+    };
 
     function setup()
     {
@@ -30,18 +41,6 @@ var ofmeet = (function(of)
             $(message).find('ofmeet').each(function ()
             {
                 try {
-                    var json = JSON.parse($(this).text());
-
-                    if (json.event == "ofmeet.event.sip.join")
-                    {
-                        addSipParticipant(json);
-                    }
-                    else
-
-                    if (json.event == "ofmeet.event.sip.leave")
-                    {
-                        removeSipParticipant(json);
-                    }
 
 
                 } catch (e) {}
@@ -66,7 +65,10 @@ var ofmeet = (function(of)
     {
         console.log("ofmeet.js __init");
 
-        //of.subtitles = document.getElementById("subtitles");
+        of.username = localStorage.getItem("xmpp_username_override").split("@")[0];
+        of.password = localStorage.getItem("xmpp_password_override");
+
+        of.subtitles = document.getElementById("subtitles");
 
         APP.conference.addConferenceListener(JitsiMeetJS.events.conference.CONFERENCE_JOINED, function()
         {
@@ -77,22 +79,23 @@ var ofmeet = (function(of)
         {
             console.log("ofmeet.js me left");
 
-
             if (of.recognition)
             {
                 of.recognitionActive = false;
                 of.recognition.stop();
             }
+
+            if (parent && parent.stopRecorder) parent.stopRecorder();
         });
 
         APP.conference.addConferenceListener(JitsiMeetJS.events.conference.MESSAGE_RECEIVED , function(id, text, ts)
         {
             console.log("ofmeet.js message", id, text, ts);
 
-            //if (OFMEET_CONFIG.enableCaptions)
-            //{
-            //    of.subtitles.innerHTML = id.split("-")[0] + " : " + text;
-            //}
+            if (enableCaptions && text.indexOf("http") != 0)
+            {
+                of.subtitles.innerHTML = id.split("-")[0] + " : " + text;
+            }
         });
 
         APP.conference.addConferenceListener(JitsiMeetJS.events.conference.USER_LEFT, function(id)
@@ -123,25 +126,38 @@ var ofmeet = (function(of)
         APP.conference.addConferenceListener(JitsiMeetJS.events.conference.TRACK_MUTE_CHANGED, function(track)
         {
             console.log("ofmeet.js track muted", track.getParticipantId(), track.getType(), track.isMuted());
-
-            if (APP.conference.getMyUserId() == track.getParticipantId() && of.localStream)
-            {
-                var tracks = of.localStream.getAudioTracks();
-
-                for (var i=0; i<tracks.length; i++)
-                {
-                    tracks[i].enabled = !track.isMuted();
-                }
-            }
         });
 
         if (APP.conference.roomName)
         {
-            //if (OFMEET_CONFIG.enableTranscription)
-            //{
+            if (of.username && of.password && enableRecord && parent && parent.startRecorder)
+            {
+                parent.startRecorder(recordAudio, recordVideo, APP.conference.localAudio.stream, APP.conference.localVideo.stream, room, APP.conference.getMyUserId(), of.username, of.password);
+
+                var audioFileName = room + "." + APP.conference.getMyUserId() + ".audio.webm";
+                var videoFileName = room + "." + APP.conference.getMyUserId() + ".video.webm";
+
+                var audioFileUrl = "https://" + location.host + "/ofmeet-cdn/recordings/" + audioFileName;
+                var videoFileUrl = "https://" + location.host + "/ofmeet-cdn/recordings/" + videoFileName;
+
+                if (recordAudio)
+                {
+                    APP.conference._room.sendTextMessage(audioFileUrl);
+                }
+                else
+
+                if (recordVideo)
+                {
+                    APP.conference._room.sendTextMessage(audioFileUrl);
+                    APP.conference._room.sendTextMessage(videoFileUrl);
+                }
+            }
+
+            if (enableTranscription)
+            {
                 setupSpeechRecognition();
                 of.recognition.start();
-            //}
+            }
         }
     }
 
@@ -200,9 +216,9 @@ var ofmeet = (function(of)
         if (result != "" && APP.conference && APP.conference._room)
         {
             var message = "[" + result + "]";
-            console.log("Speech recog result", APP.conference._room, message,  localStorage.getItem("xmpp_username_override"), localStorage.getItem("uport.name"));
+            console.log("Speech recog result", APP.conference._room, message);
 
-            APP.conference._room.sendTextMessage(message, localStorage.getItem("uport.name"));
+            APP.conference._room.sendTextMessage(message);
             of.currentTranslation = [];
         }
     }
@@ -210,12 +226,19 @@ var ofmeet = (function(of)
     window.addEventListener("beforeunload", function(e)
     {
         console.log("ofmeet.js beforeunload");
+        //e.returnValue = 'Ok';
+    });
 
-        localStorage.removeItem("xmpp_username_override");
-        localStorage.removeItem("xmpp_password_override");
-        localStorage.removeItem("uport.email");
-        localStorage.removeItem("uport.name");
-        localStorage.removeItem("uport.avatar");           
+    window.addEventListener("unload", function (e)
+    {
+        console.log("ofmeet.js unload");
+
+        //localStorage.removeItem("xmpp_username_override");
+        //localStorage.removeItem("xmpp_password_override");
+
+        //localStorage.removeItem("uport.email");
+        //localStorage.removeItem("uport.name");
+        //localStorage.removeItem("uport.avatar");
 
         APP.conference._room.leave();
 
@@ -224,19 +247,7 @@ var ofmeet = (function(of)
             of.connection.disconnect();
         }
 
-        //e.returnValue = 'Ok';
-    });
-
-    window.addEventListener("unload", function (e)
-    {
-        console.log("ofmeet.js unload");
-
-        localStorage.removeItem("xmpp_username_override");
-        localStorage.removeItem("xmpp_password_override");
-        localStorage.removeItem("uport.email");
-        localStorage.removeItem("uport.name");
-        localStorage.removeItem("uport.avatar");        
-        
+        //stopRecorder();
     });
 
     window.addEventListener("load", function()
@@ -246,10 +257,10 @@ var ofmeet = (function(of)
         if (localStorage.getItem("uport.email"))    APP.conference.changeLocalEmail(localStorage.getItem("uport.email"));
         if (localStorage.getItem("uport.name"))     APP.conference.changeLocalDisplayName(localStorage.getItem("uport.name"));
         if (localStorage.getItem("uport.avatar"))   APP.conference.changeLocalAvatarUrl(localStorage.getItem("uport.avatar"));
-            
+
         setTimeout(function() {setup();}, 1000);
     });
-            
+
     config.p2p = {
         enabled: true,
         stunServers: [
