@@ -55,7 +55,7 @@ var interfaceConfig = {
     REMOTE_THUMBNAIL_RATIO: 1, // 1:1
 
     LIVE_STREAMING_HELP_LINK: 'https://jitsi.org/live',
-    MOBILE_APP_PROMO: true,
+    MOBILE_APP_PROMO: false,
     MAXIMUM_ZOOMING_COEFFICIENT: 1.3,
     SUPPORT_URL: 'https://github.com/jitsi/jitsi-meet/issues/new',
     CONNECTION_INDICATOR_AUTO_HIDE_ENABLED: true,
