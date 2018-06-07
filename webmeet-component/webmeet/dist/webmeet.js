@@ -2,20 +2,25 @@ var of = {}
 
 window.addEventListener("load", function()
 {
+    if (config.fastpath && config.fastpath.form)
+    {
+    }
+
     window.localStorage["webmeet_record"]       =  config.webmeet_record;
     window.localStorage["webmeet_record_audio"] =  config.webmeet_record_audio;
     window.localStorage["webmeet_record_video"] =  config.webmeet_record_video;
     window.localStorage["webmeet_transcription"] = config.webmeet_transcription;
     window.localStorage["webmeet_captions"]     =  config.webmeet_captions;
 
+    of.server = config.bosh_service_url.split("/")[2];
+    of.avatar = null;
+
     if (config.uport)
     {
         var clientId = "2p1psGHt9J5NBdPDQejSVhpsECXLxLaVQSo";
         var permission = "Wa1l7M9NoGwcxxdX";
-        var server = config.bosh_service_url.split("/")[2];
-        var avatar = null;
 
-        var url = "https://" + server + "/rest/api/restapi/v1/ask/uport/pade/" + clientId;
+        var url = "https://" + of.server + "/rest/api/restapi/v1/ask/uport/pade/" + clientId;
         var options = {method: "GET", headers: {"authorization": permission}};
 
         fetch(url, options).then(function(response){ return response.text()}).then(function(signer)
@@ -45,8 +50,8 @@ window.addEventListener("load", function()
 
                 if (credentials.avatar && credentials.avatar.uri)
                 {
-                    avatar = credentials.avatar.uri;
-                    window.localStorage["uport.avatar"] = avatar;
+                    of.avatar = credentials.avatar.uri;
+                    window.localStorage["uport.avatar"] = of.avatar;
                 }
 
                 if (credentials.registration && credentials.registration.xmpp)
@@ -65,12 +70,12 @@ window.addEventListener("load", function()
                         localStorage.setItem("xmpp_password_override", credentials.registration.access);
 
                         document.getElementById("loader").style.display = "none";
-                        converse.initialize(config);
+                        converseInitialize(config);
 
                     } else {
-                        console.error("uPort credentials are not for server " + server + ", found " + credentials.registration.xmpp);
+                        console.error("uPort credentials are not for server " + of.server + ", found " + credentials.registration.xmpp);
                         document.getElementById("loader").style.display = "none";
-                        converse.initialize(config);
+                        converseInitialize(config);
                     }
 
 
@@ -81,21 +86,21 @@ window.addEventListener("load", function()
 
                     web3.eth.getAccounts((error, result) =>
                     {
-                        console.log("account", result, error);
+                        //console.log("account", result, error);
 
                         if (error) {
                             console.error('Account error', error);
                             document.getElementById("loader").style.display = "none";
-                            converse.initialize(config);
+                            converseInitialize(config);
 
                         } else {
                             account = result[0];
 
                             window.localStorage["uport.account"] =  account;
 
-                            console.log('Account:' + account);
+                            //console.log('Account:' + account);
 
-                            var url = "https://" + server + "/rest/api/restapi/v1/ask/uport/register";
+                            var url = "https://" + of.server + "/rest/api/restapi/v1/ask/uport/register";
                             var options = {method: "POST", headers: {"authorization": permission}, body: JSON.stringify({name: credentials.name, email: credentials.email, phone: credentials.phone, country: credentials.country, address: credentials.address, publicKey: credentials.publicKey, avatar: credentials.avatar, password: "", account: account})};
 
                             //console.log("register new user", credentials);
@@ -113,7 +118,7 @@ window.addEventListener("load", function()
                                         exp: new Date().getTime() + 30 * 24 * 60 * 60 * 1000
 
                                     }).then((result) => {
-                                        console.log('attestCredentials result', result);
+                                        //console.log('attestCredentials result', result);
 
                                         config.authentication = "login";
                                         config.jid = userpass.username + "@" + config.locked_domain;
@@ -125,24 +130,24 @@ window.addEventListener("load", function()
                                         localStorage.setItem("xmpp_password_override", userpass.password);
 
                                         document.getElementById("loader").style.display = "none";
-                                        converse.initialize(config);
+                                        converseInitialize(config);
 
                                     }).catch(function (err) {
                                         console.error('attestCredentials error', err);
                                         document.getElementById("loader").style.display = "none";
-                                        converse.initialize(config);
+                                        converseInitialize(config);
                                     });
 
                                 } catch (e) {
                                     console.error('Credentials error', e);
                                     document.getElementById("loader").style.display = "none";
-                                    converse.initialize(config);
+                                    converseInitialize(config);
                                 }
 
                             }).catch(function (err) {
                                 console.error('Credentials error', err);
                                 document.getElementById("loader").style.display = "none";
-                                converse.initialize(config);
+                                converseInitialize(config);
                             });
                         }
                     });
@@ -151,24 +156,166 @@ window.addEventListener("load", function()
             }, function(err) {
                 console.error("Credentials", err);
                 document.getElementById("loader").style.display = "none";
-                converse.initialize(config);
+                converseInitialize(config);
             });
 
         }).catch(function (err) {
             console.error('uPort permission error', err);
             document.getElementById("loader").style.display = "none";
-            converse.initialize(config);
+            converseInitialize(config);
         });
 
     } else {
         document.getElementById("loader").style.display = "none";
-        converse.initialize(config);
+        converseInitialize(config);
     }
 });
 
+function converseInitialize(config)
+{
+    if (config.fastpath && config.fastpath.workgroup)
+    {
+        function fetch_text (url) {
+            return fetch(url).then((response) => (response.text()));
+        }
+
+        fetch_text("forms/" + config.fastpath.form + ".html").then((html) => {
+            document.getElementById("cf-webmeet").innerHTML = html;
+
+        }).catch((error) => {
+            console.error(error);
+            converse.initialize(config);
+        });
+
+        var closeFastpath = document.getElementById("closeFastpath");
+
+        if (closeFastpath)
+        {
+            closeFastpath.addEventListener('click', function()
+            {
+                if (window.parent && window.parent.ofmeet) window.parent.ofmeet.doExit();
+                of.cForm.remove();
+                window.location.reload();
+
+            }, false);
+        }
+
+        of.connection = new Strophe.Connection("wss://" + of.server + '/ws/');
+        //of.connection.rawInput = function (data) { console.log('RECV: ' + data); };
+        //of.connection.rawOutput = function (data) { console.log('SEND: ' + data); };
+
+        of.connection.connect(of.server, null, function (status)
+        {
+            if (status == Strophe.Status.CONNECTED)
+            {
+                //console.log('connected');
+                of.connection.send($pres());
+                of.connection.addHandler(onMessage, 'http://jabber.org/protocol/workgroup', 'message');
+
+                // override with uPort
+
+                if (config.uport)
+                {
+                    var name = document.getElementById("name");
+                    var email = document.getElementById("email");
+
+                    if (window.localStorage["uport.name"] && name) name.value = window.localStorage["uport.name"];
+                    if (window.localStorage["uport.email"] && email) email.value = window.localStorage["uport.email"];
+                }
+
+                document.getElementById("conversejs").style.visibility = "visible";
+
+                of.cForm = new cf.ConversationalForm(
+                {
+                    formEl: document.getElementById("cf-form2"),
+                    context: document.getElementById("cf-webmeet"),
+                    loadExternalStyleSheet: true,
+                    robotImage: config.fastpath.robotImage,
+                    userImage: of.avatar ? of.avatar : config.fastpath.userImage,
+
+                    submitCallback: function(data)
+                    {
+                        //console.log("submitted", of.cForm.getFormData(true));
+                        of.cForm.addRobotChatResponse("Please wait for an agent....");
+                        joinWorkgroup(config.fastpath.workgroup, of.cForm.getFormData(true));
+                    }
+                });
+
+            } else {
+                //console.log('status', status);
+            }
+        });
+
+    } else {
+        converse.initialize(config);
+    }
+}
+
+function joinWorkgroup(workgroup, form)
+{
+    //console.log('joinWorkgroup', form);
+    of.form = form;
+
+    if (of.connection != null && of.connection.connected)
+    {
+        var iq = $iq({to: workgroup, type: 'set'}).c('join-queue', {xmlns: 'http://jabber.org/protocol/workgroup'});
+        iq.c('queue-notifications').up();
+        iq.c('x', {xmlns: 'jabber:x:data', type: 'submit'});
+
+        var items = Object.getOwnPropertyNames(form)
+
+        for (var i=0; i< items.length; i++)
+        {
+            iq.c('field', {var: items[i]}).c('value').t(form[items[i]]).up().up();
+        }
+
+        iq.up();
+
+        of.connection.sendIQ(iq,
+            function (res) {
+                //console.log('join workgroup ok', res);
+            },
+
+            function (err) {
+                console.error('join workgroup error', err);
+                of.cForm.addRobotChatResponse("Ask error: No Agent available");
+
+                setTimeout(function()
+                {
+                    converse.initialize(config);
+
+                }, 2000)
+            }
+        );
+    }
+}
+
+function onMessage(message)
+{
+    //console.log('onMessage', message);
+
+    $(message).find('x').each(function()
+    {
+        var xmlns = $(this).attr("xmlns");
+
+        if (xmlns == "jabber:x:conference")
+        {
+            var roomJid = $(this).attr("jid");
+            var room = Strophe.getNodeFromJid(roomJid);
+            //console.log("fastpath invite", room);
+
+            of.cForm.remove();
+            config.auto_join_rooms = [{jid: roomJid, nick: of.form.name || "Visitor"}];
+            converse.initialize(config);
+        }
+    });
+
+    return true;
+}
+
 function stopRecorder()
 {
-    console.log("stopRecorder");
+    //console.log("stopRecorder");
 
     if (of.audioRecorder) of.audioRecorder.stop();
     if (of.videoRecorder) of.videoRecorder.stop();
@@ -176,7 +323,7 @@ function stopRecorder()
 
 function startRecorder(recordAudio, recordVideo, localAudioStream, localVideoStream, room, nickname, username, password)
 {
-    console.log("startRecorder", nickname, room, username, localAudioStream, localVideoStream);
+    //console.log("startRecorder", nickname, room, username, localAudioStream, localVideoStream);
 
     if (recordAudio || recordVideo)
     {
@@ -187,20 +334,20 @@ function startRecorder(recordAudio, recordVideo, localAudioStream, localVideoStr
         {
             if (e.data.size > 0)
             {
-                console.log("startRecorder push audio ", e.data);
+                //console.log("startRecorder push audio ", e.data);
                 of.audioChunks.push(e.data);
             }
         }
 
         of.audioRecorder.onstop = function(e)
         {
-            console.log("audioRecorder.onstop ", e.data);
+            //console.log("audioRecorder.onstop ", e.data);
             var audioReader = new FileReader();
 
             audioReader.onload = function()
             {
                 var file = dataUrlToFile(audioReader.result, room + "." + nickname + ".audio.webm");
-                console.log("audioReader.onload", file);
+                //console.log("audioReader.onload", file);
                 uploadFile(file, room, username, password);
             };
 
@@ -219,20 +366,20 @@ function startRecorder(recordAudio, recordVideo, localAudioStream, localVideoStr
         {
             if (e.data.size > 0)
             {
-                console.log("startRecorder push video ", e.data);
+                //console.log("startRecorder push video ", e.data);
                 of.videoChunks.push(e.data);
             }
         }
 
         of.videoRecorder.onstop = function(e)
         {
-            console.log("videoRecorder.onstop ", e.data);
+            //console.log("videoRecorder.onstop ", e.data);
             var videoReader = new FileReader();
 
             videoReader.onload = function()
             {
                 var file = dataUrlToFile(videoReader.result, room + "." + nickname + ".video.webm");
-                console.log("videoReader.onload", file);
+                //console.log("videoReader.onload", file);
                 uploadFile(file, room, username, password);
             };
 
@@ -245,11 +392,9 @@ function startRecorder(recordAudio, recordVideo, localAudioStream, localVideoStr
 
 function uploadFile(file, room, username, password)
 {
-    console.log("uploadFile", file, room);
+    //console.log("uploadFile", file, room);
 
-    var server = config.bosh_service_url.split("/")[2];
-
-    var putUrl = "https://" + server + "/dashboard/upload?name=" + file.name + "&username=" + username;
+    var putUrl = "https://" + of.server + "/dashboard/upload?name=" + file.name + "&username=" + username;
 
     var req = new XMLHttpRequest();
 
@@ -257,7 +402,7 @@ function uploadFile(file, room, username, password)
     {
       if (this.readyState == 4 && this.status >= 200 && this.status < 400)
       {
-        console.log("uploadFile", this.statusText);
+        //console.log("uploadFile", this.statusText);
       }
       else
 
