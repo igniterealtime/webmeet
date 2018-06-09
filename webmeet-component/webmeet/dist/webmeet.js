@@ -247,6 +247,7 @@ function converseInitialize(config)
         });
 
     } else {
+        document.getElementById("conversejs").style.visibility = "visible";
         converse.initialize(config);
     }
 }
