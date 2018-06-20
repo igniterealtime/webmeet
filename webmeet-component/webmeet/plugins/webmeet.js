@@ -384,14 +384,14 @@
                     var view = this;
                     var id = this.model.get("box_id");
                     var html = '<li id="webmeet-jitsi-meet-' + id + '"><a class="fa fa-video-camera" title="Audio/Video Conferennce"></a></li>';
-                    $(this.el).find('.toggle-call').after(html);
+                    $(this.el).find('.toggle-occupants').after(html);
 
                     if (_converse.view_mode === 'embedded')
                     {
                         this.model.set({'hidden_occupants': true});
 
                         var html = '<li id="webmeet-exit-webchat-' + id + '"><a class="fa fa-sign-out" title="Exit Web Chat"></a></li>';
-                        $(this.el).find('.toggle-call').after(html);
+                        $(this.el).find('.toggle-occupants').after(html);
 
                     } else {
                         // file upload by drag & drop
@@ -407,7 +407,7 @@
                         if (bgWindow.pade.activeH5p)
                         {
                             var html = '<li id="h5p-' + id + '"><a class="fa fa-html5" title="Add H5P Content"></a></li>';
-                            $(this.el).find('.toggle-call').after(html);
+                            $(this.el).find('.toggle-occupants').after(html);
                         }
                     }
 
