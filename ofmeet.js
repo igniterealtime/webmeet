@@ -1,35 +1,138 @@
 var ofmeet = (function(of)
 {
+    let domain = location.hostname;
+    let server = location.host;
+    let workgroup = "demo";
+
+    const fpDiv = document.querySelector("fastpath-chat");
+
+    if (fpDiv)
+    {
+        domain = fpDiv.getAttribute("domain");
+        server = fpDiv.getAttribute("server");
+        workgroup = fpDiv.getAttribute("workgroup");
+    }
+
+    const fastpath = workgroup + '@workgroup.' + domain;
+    const roomJid = workgroup + '@conference.' + domain;
+    const boshUri = 'https://' + server + '/http-bind/';
+    const wsUri = 'wss://' + server + '/ws/';
+
+    const welcome = ["Welcome to Fastpath. How can we help you?", "You can type !help anytime for list of commands"]
+
+    var nickColors = {}, avatars = {}, videoRecorder = null, _converse = null, chatButton, opened = false;
+
     window.addEventListener("load", function()
     {
-        var chatButton = document.getElementById("chatbutton");
+        chatButton = document.getElementById("chatbutton");
 
         chatButton.addEventListener("click", function (e)
         {
             console.log("chatButton clicked");
             chatButton.style.visibility = "hidden";
+
+            doConverse()
+        });
+    });
+
+    //-------------------------------------------------------
+    //
+    //  Functions
+    //
+    //-------------------------------------------------------
+
+    function doConverse(credentials)
+    {
+
+
+        if (!_converse)
+        {
             setupAudioConf();
             setupJitsiMeet();
+            setupWebMeet();
 
             converse.initialize({
                 auto_login: true,
                 theme: 'concord',
                 allow_non_roster_messaging: true,
                 auto_join_on_invite: true,
-                auto_join_private_chats: ['demo@workgroup.' + location.hostname],
                 authentication: 'anonymous',
-                jid: location.hostname,
+                jid: domain,
+                nickname: getNick(),
                 auto_away: 300,
                 auto_reconnect: true,
-                debug: true,
+                debug: false,
                 singleton: true,
                 sticky_controlbox: false,
-                websocket_url: 'wss://' + location.host + '/ws/',
+                muc_show_join_leave: true,
+                muc_show_join_leave_status: false,
+                bosh_service_url: boshUri,
+                websocket_url: wsUri,
                 message_archiving: 'always',
-                whitelisted_plugins: ["jitsimeet", "audioconf"]
+                whitelisted_plugins: ["jitsimeet", "audioconf", "webmeet"]
             });
+        }
+        else {
+            openFastPath();
+        }
+    }
+
+    function openFastPath()
+    {
+        getFastPathStatus(function(open)
+        {
+            console.debug('fastpath opened', open);
+
+            if (open)
+            {
+                _converse.api.chats.open(fastpath);
+            }
+            else {
+                _converse.api.rooms.open(roomJid, {nick: getNick()});
+            }
         });
-    });
+    }
+
+    function getFastPathStatus(callback)
+    {
+        const iq = converse.env.$iq({type: 'get', to: fastpath}).c('query', {xmlns: 'http://jabber.org/protocol/disco#info'});
+
+        _converse.connection.sendIQ(iq, function(resp)
+        {
+            console.debug("getFastPathStatus", resp);
+
+            $(resp).find('field').each(function ()
+            {
+                if( $(this).attr('var') == "workgroup#online")
+                {
+                    $(this).find('value').each(function ()
+                    {
+                        opened = $(this).text() == "OPEN";
+                    });
+                }
+            });
+
+            callback(opened);
+
+        }, function(err) {
+            console.error("fastpath error", err);
+            callback(false);
+        });
+    }
+
+    function getNick()
+    {
+        if (!window.localStorage["webmeet.nick"]) return undefined;
+        else {
+            return JSON.parse(window.localStorage["webmeet.nick"]);
+        }
+    }
+
+    function setNick(nick)
+    {
+        if (!nick) return;
+        window.localStorage["webmeet.nick"] = JSON.stringify(nick);
+    }
 
     function setupJitsiMeet()
     {
@@ -94,6 +197,31 @@ var ofmeet = (function(of)
                     }
                 });
 
+                _converse.api.listen.on('renderToolbar', function(view)
+                {
+                    if (view.model.get("type") == "chatroom")
+                    {
+                        of.view = view;
+                        var id = view.model.get("box_id");
+
+                        var jitsiMeet = addToolbarItem(view, id, "pade-jitsimeet-" + id, '<a class="fas fa-video" title="Jitsi Meet"></a>');
+
+                        jitsiMeet.addEventListener('click', function(evt)
+                        {
+                            evt.stopPropagation();
+
+                            var jitsiConfirm = _converse.api.settings.get("jitsimeet_confirm");
+
+                            if (confirm(jitsiConfirm))
+                            {
+                                doVideo(view);
+                            }
+
+                        }, false);
+                    }
+                });
+
+
                 MeetDialog = _converse.BootstrapModal.extend({
                     initialize() {
                         _converse.BootstrapModal.prototype.initialize.apply(this, arguments);
@@ -126,40 +254,6 @@ var ofmeet = (function(of)
             },
 
             overrides: {
-                ChatBoxView: {
-
-                    renderToolbar: function renderToolbar(toolbar, options) {
-                        var result = this.__super__.renderToolbar.apply(this, arguments);
-
-                        if (this.model.get("type") == "chatroom")
-                        {
-                            var view = this;
-                            var id = this.model.get("box_id");
-
-                            addToolbarItem(view, id, "pade-jitsimeet-" + id, '<a class="fas fa-video" title="Jitsi Meet"></a>');
-
-                            setTimeout(function()
-                            {
-                                var jitsiMeet = document.getElementById("pade-jitsimeet-" + id);
-
-                                if (jitsiMeet) jitsiMeet.addEventListener('click', function(evt)
-                                {
-                                    evt.stopPropagation();
-
-                                    var jitsiConfirm = _converse.api.settings.get("jitsimeet_confirm");
-
-                                    if (confirm(jitsiConfirm))
-                                    {
-                                        doVideo(view);
-                                    }
-
-                                }, false);
-                            });
-                        }
-
-                        return result;
-                    }
-                },
 
                 MessageView: {
 
@@ -285,29 +379,211 @@ var ofmeet = (function(of)
                 if (type == "chatroom") _converse.api.rooms.open(jid);
             }
         }
-
-        var newElement = function newElement(el, id, html)
-        {
-            var ele = document.createElement(el);
-            if (id) ele.id = id;
-            if (html) ele.innerHTML = html;
-            document.body.appendChild(ele);
-            return ele;
-        }
-
-        var addToolbarItem = function addToolbarItem(view, id, label, html)
-        {
-            var placeHolder = view.el.querySelector('#place-holder');
-
-            if (!placeHolder)
-            {
-                var smiley = view.el.querySelector('.toggle-smiley.dropup');
-                smiley.insertAdjacentElement('afterEnd', newElement('li', 'place-holder'));
-                placeHolder = view.el.querySelector('#place-holder');
-            }
-            placeHolder.insertAdjacentElement('afterEnd', newElement('li', label, html));
-        }
     }
+
+
+    function setupWebMeet()
+    {
+        var _converse = null;
+
+        converse.plugins.add("webmeet", {
+            dependencies: [],
+
+            initialize: function () {
+                _converse = this._converse;
+
+                var QRCodeDialog = _converse.BootstrapModal.extend({
+                    initialize() {
+                        _converse.BootstrapModal.prototype.initialize.apply(this, arguments);
+                        this.model.on('change', this.render, this);
+                    },
+                    toHTML() {
+                      var title = this.model.get("title");
+                      return '<div class="modal" id="myModal"> <div class="modal-dialog"> <div class="modal-content">' +
+                             '<div class="modal-header"><h1 class="modal-title">' + title + '</h1><button type="button" class="close" data-dismiss="modal">&times;</button></div>' +
+                             '<div class="modal-body"></div>' +
+                             '<div class="modal-status">Please scan the QR code with your IRMA app</div>' +
+                             '<div class="modal-footer"><button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button></div>' +
+                             '</div> </div> </div>';
+                    },
+                    afterRender() {
+                        var that = this;
+                        var qrcode = this.model.get("qrcode");
+
+                        this.el.addEventListener('shown.bs.modal', function()
+                        {
+                            if (qrcode)
+                            {
+                                that.el.querySelector('.modal-body').appendChild(qrcode);
+                            }
+
+                        }, false);
+                    },
+                    events: {
+                        "click .btn-danger": "clearQRCode",
+                    },
+
+                    clearQRCode() {
+                        var callback = this.model.get("callback");
+                        if (callback) callback();
+                    },
+                    startSession() {
+                        this.el.querySelector('.modal-status').innerHTML = "Please follow the instructions in your IRMA app";
+                    },
+                    endSession() {
+                       this.modal.hide();
+                    }
+                });
+
+                _converse.api.listen.on('connected', function()
+                {
+                    console.debug('irma connected');
+
+                    openFastPath();
+
+                    var qrcodeDialog = null;
+
+                    var success_fun = function(data)
+                    {
+                        var json = jwt_decode(data);
+                        console.log("Authentication successful token:", data, json);
+                    }
+                    var cancel_fun = function() {
+                        console.error("IRMA Authentication cancelled!");
+                    }
+                    var error_fun = function() {
+                        console.error("Authentication failed!");
+                    }
+
+                    IRMA.init("https://demo.irmacard.org/tomcat/irma_api_server/api/v2/");
+
+                    _converse.connection.addHandler(function(message)
+                    {
+                        console.debug('irma handler', message);
+
+                        var cancelIrma = function()
+                        {
+                            console.debug('irma cancelled');
+                        }
+
+                        $(message).find('irma').each(function ()
+                        {
+                            const action = $(this).attr('action');
+
+                            if (action == "reveal")
+                            {
+                                console.debug("irma/reveal", $(this).text());
+
+                                const json = JSON.parse($(this).text());
+                                qrcodeDialog = IRMA.processInitialServerMessage(json, success_fun, cancel_fun, error_fun, QRCodeDialog);
+                            }
+                            else
+
+                            if (action == "status")
+                            {
+                                const status = $(this).text()
+                                console.debug("irma/status", status);
+                            }
+                            else
+
+                            if (action == "done")
+                            {
+                                const jwt = $(this).text()
+                                const json = jwt_decode(jwt);
+                                console.debug("irma/done", json);
+
+                                if (qrcodeDialog) qrcodeDialog.modal.hide();
+                                if (of.view) of.view.showHelpMessages(["Verified - email: " + json.attributes["pbdf.pbdf.email.email"] + " " + "phone: " + json.attributes["pbdf.pbdf.mobilenumber.mobilenumber"]]);
+                            }
+
+                        });
+
+                        return true;
+
+                    }, "http://igniterealtime.org/xmlns/xmpp/irma", 'message');
+
+                });
+
+                _converse.api.listen.on('chatBoxClosed', function (view)
+                {
+                    console.log("chatBoxClosed", _converse.nickname, view.model.get("nick"), _converse.chatboxviews.model.models.length);
+
+                    if (_converse.chatboxviews.model.models.length == 0)
+                    {
+                        chatButton.style.visibility = "";
+                    }
+                });
+
+                _converse.api.listen.on('renderToolbar', function(view)
+                {
+                    console.debug('ingite - renderToolbar', view.model);
+
+                    if (view.model.get("type") == "chatbox")
+                    {
+                        view.showHelpMessages(welcome);
+                    }
+                    else
+
+                    if (view.model.get("type") == "chatroom")
+                    {
+                        var id = view.model.get("box_id");
+                        var jid = view.model.get("jid");
+
+                        var scrolldown = addToolbarItem(view, id, "ignite-scrolldown-" + id, '<a class="fa fa-angle-double-down" title="Scroll to the bottom"></a>');
+
+                        scrolldown.addEventListener('click', function(evt)
+                        {
+                            evt.stopPropagation();
+                            view.viewUnreadMessages()
+
+                        }, false);
+
+                        var screencast = addToolbarItem(view, id, "ignite-screencast-" + id, '<a class="fa fa-desktop" title="ScreenCast. Click to here to start and click here again to stop"></a>');
+
+                        screencast.addEventListener('click', function(evt)
+                        {
+                            evt.stopPropagation();
+                            toggleScreenCast(view);
+
+                        }, false);
+
+                        setTimeout(function()
+                        {
+                            if (view.model.get("type") == "chatroom")
+                            {
+                                setNick(view.model.get("nick"));
+                            }
+                        }, 60000)
+                    }
+                });
+            },
+
+            overrides: {
+                MessageView: {
+
+                    renderChatMessage: async function renderChatMessage()
+                    {
+                        if (this.model.vcard)
+                        {
+                            var nick = this.model.getDisplayName();
+
+                            if (nick && _converse.DEFAULT_IMAGE == this.model.vcard.attributes.image)
+                            {
+                                var dataUri = createAvatar(nick);
+                                var avatar = dataUri.split(";base64,");
+
+                                this.model.vcard.attributes.image = avatar[1];
+                                this.model.vcard.attributes.image_type = "image/png";
+                            }
+                        }
+
+                        await this.__super__.renderChatMessage.apply(this, arguments);
+                    }
+                }
+            }
+        });
+    }
+
 
     function setupAudioConf()
     {
@@ -339,7 +615,7 @@ var ofmeet = (function(of)
                     text: "Ask",
                     use_default_button_css: "true",
                     protocol: "sip",    // 'sip' or 'xmpp'
-                    sip: {domain: location.hostname, server: "wss://" + location.host + "/sip/proxy?url=ws://" + location.hostname + ":5066", register: false, caller_uri: "sip:1002@" + location.host, authorization_user: "1002", password: "1234"},
+                    sip: {domain: domain, server: "wss://" + server + "/sip/proxy?url=ws://" + domain + ":5066", register: false, caller_uri: "sip:1002@" + domain, authorization_user: "1002", password: "1234"},
                     xmpp: {domain: "meet.jit.si", server: "https://meet.jit.si/http-bind"}
                 }
 
@@ -376,6 +652,217 @@ var ofmeet = (function(of)
         });
     }
 
+    function createAvatar (nickname, width, height, font)
+    {
+        nickname = nickname.toLowerCase();
+
+        if (avatars[nickname])
+        {
+            return avatars[nickname];
+        }
+
+        if (!width) width = 32;
+        if (!height) height = 32;
+        if (!font) font = "16px Arial";
+
+        var canvas = document.createElement('canvas');
+        canvas.style.display = 'none';
+        canvas.width = width;
+        canvas.height = height;
+        document.body.appendChild(canvas);
+        var context = canvas.getContext('2d');
+        context.fillStyle = getRandomColor(nickname);
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.font = font;
+        context.fillStyle = "#fff";
+
+        var first, last, pos = nickname.indexOf("@");
+        if (pos > 0) nickname = nickname.substring(0, pos);
+
+        var name = nickname.split(" ");
+        if (name.length == 1) name = nickname.split(".");
+        if (name.length == 1) name = nickname.split("-");
+        var l = name.length - 1;
+
+        if (name && name[0] && name.first != '')
+        {
+            first = name[0][0];
+            last = name[l] && name[l] != '' && l > 0 ? name[l][0] : null;
+
+            if (last) {
+                var initials = first + last;
+                context.fillText(initials.toUpperCase(), 3, 23);
+            } else {
+                var initials = first;
+                context.fillText(initials.toUpperCase(), 10, 23);
+            }
+            var data = canvas.toDataURL();
+            document.body.removeChild(canvas);
+        }
+
+        var dataUrl = canvas.toDataURL();
+        avatars[nickname] = dataUrl;
+        return dataUrl;
+    }
+
+    function getRandomColor (nickname)
+    {
+        if (nickColors[nickname])
+        {
+            return nickColors[nickname];
+        }
+        else {
+            var letters = '0123456789ABCDEF';
+            var color = '#';
+
+            for (var i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            nickColors[nickname] = color;
+            return color;
+        }
+    }
+
+    function __newElement (el, id, html, className)
+    {
+        var ele = document.createElement(el);
+        if (id) ele.id = id;
+        if (html) ele.innerHTML = html;
+        if (className) ele.classList.add(className);
+        document.body.appendChild(ele);
+        return ele;
+    }
+
+    function addToolbarItem (view, id, label, html)
+    {
+        var placeHolder = view.el.querySelector('#place-holder');
+
+        if (!placeHolder)
+        {
+            var smiley = view.el.querySelector('.toggle-smiley.dropup');
+            smiley.insertAdjacentElement('afterEnd', __newElement('li', 'place-holder'));
+            placeHolder = view.el.querySelector('#place-holder');
+        }
+        var newEle = __newElement('li', label, html);
+        placeHolder.insertAdjacentElement('afterEnd', newEle);
+        return newEle;
+    }
+
+
+    function toggleScreenCast (view)
+    {
+        if (videoRecorder == null)
+        {
+            getDisplayMedia().then(stream =>
+            {
+                handleStream(stream, view);
+
+            }, error => {
+                handleError(error)
+            });
+
+        } else {
+            videoRecorder.stop();
+        }
+
+        return true;
+    }
+
+    function getDisplayMedia ()
+    {
+        if (navigator.getDisplayMedia) {
+          return navigator.getDisplayMedia({video: true});
+        } else if (navigator.mediaDevices.getDisplayMedia) {
+          return navigator.mediaDevices.getDisplayMedia({video: true});
+        } else {
+          return navigator.mediaDevices.getUserMedia({video: {mediaSource: 'screen'}});
+        }
+    }
+
+    function handleStream (stream, view)
+    {
+        navigator.mediaDevices.getUserMedia({audio: true, video: false}).then((audioStream) => handleAudioStream(stream, audioStream, view)).catch((e) => handleError(e))
+    }
+
+    function handleAudioStream (stream, audioStream, view)
+    {
+        console.debug("handleAudioStream - seperate", stream, audioStream);
+
+        stream.addTrack(audioStream.getAudioTracks()[0]);
+        audioStream.removeTrack(audioStream.getAudioTracks()[0]);
+
+        console.debug("handleAudioStream - merged", stream);
+
+        var video = document.createElement('video');
+        video.playsinline = true;
+        video.autoplay = true;
+        video.muted = true;
+        video.srcObject = stream;
+        video.style.display = "none";
+
+        setTimeout(function()
+        {
+            videoRecorder = new MediaRecorder(stream);
+            videoChunks = [];
+
+            videoRecorder.ondataavailable = function(e)
+            {
+                console.debug("handleStream - start", e);
+
+                if (e.data.size > 0)
+                {
+                    console.debug("startRecorder push video ", e.data);
+                    videoChunks.push(e.data);
+                }
+            }
+
+            videoRecorder.onstop = function(e)
+            {
+                console.debug("handleStream - stop", e);
+
+                stream.getTracks().forEach(track => track.stop());
+
+                var blob = new Blob(videoChunks, {type: 'video/webm;codecs=h264'});
+                var file = new File([blob], "screencast-" + Math.random().toString(36).substr(2,9) + ".webm", {type: 'video/webm;codecs=h264'});
+                view.model.sendFiles([file]);
+                videoRecorder = null;
+            }
+
+            videoRecorder.start();
+            console.debug("handleStream", video, videoRecorder);
+
+        }, 1000);
+    }
+
+    function handleError (e)
+    {
+        console.error("ScreenCast", e)
+    }
+
+    function loadJS(name)
+    {
+        var s1 = document.createElement('script');
+        s1.src = name;
+        s1.async = false;
+        document.body.appendChild(s1);
+    }
+
+    function loadCSS(name)
+    {
+        var head  = document.getElementsByTagName('head')[0];
+        var link  = document.createElement('link');
+        link.rel  = 'stylesheet';
+        link.type = 'text/css';
+        link.href = name;
+        head.appendChild(link);
+    }
+
+    //-------------------------------------------------------
+    //
+    //  Exports
+    //
+    //-------------------------------------------------------
+
     of.doBadge = function doBadge(count)
     {
         var unreadMessageHeading = document.getElementById("unreadMessageHeading");
@@ -400,26 +887,27 @@ var ofmeet = (function(of)
 
     of.loaded = false;
 
+    //-------------------------------------------------------
+    //
+    //  Startup
+    //
+    //-------------------------------------------------------
+
+    var div = document.createElement('div');
+    div.innerHTML = '<div id="conversejs" class="theme-concord"></div>';
+    document.body.appendChild(div);
+
     var root = document.createElement("div");
     root.innerHTML = '<div class="ofmeet-button bubble"> <a id="chatbutton" class="lwc-chat-button"> <span id="unreadMessageIndicator" class="unreadMessageIndicator"><h3 id="unreadMessageHeading" class="heading">5</h3></span> <span class="lwc-button-icon"> <svg viewBox="0 0 38 35" style="width: inherit"> <path fill="#FFF" fill-rule="evenodd" d="M36.9 10.05c-1-4.27-4.45-7.6-8.8-8.4-2.95-.5-6-.78-9.1-.78-3.1 0-6.15.27-9.1.8-4.35.8-7.8 4.1-8.8 8.38-.4 1.5-.6 3.07-.6 4.7 0 1.62.2 3.2.6 4.7 1 4.26 4.45 7.58 8.8 8.37 2.95.53 6 .45 9.1.45v5.2c0 .77.62 1.4 1.4 1.4.3 0 .6-.12.82-.3l11.06-8.46c2.3-1.53 3.97-3.9 4.62-6.66.4-1.5.6-3.07.6-4.7 0-1.62-.2-3.2-.6-4.7zm-14.2 9.1H10.68c-.77 0-1.4-.63-1.4-1.4 0-.77.63-1.4 1.4-1.4H22.7c.76 0 1.4.63 1.4 1.4 0 .77-.63 1.4-1.4 1.4zm4.62-6.03H10.68c-.77 0-1.4-.62-1.4-1.38 0-.77.63-1.4 1.4-1.4h16.64c.77 0 1.4.63 1.4 1.4 0 .76-.63 1.38-1.4 1.38z"></path></svg> </span> <span id="chatIconText" class="lwc-button-text">Contact us</span> </a></div> <div class="ofmeet-chat"></div>';
     document.body.appendChild(root);
 
-    var div = document.createElement('div');
-    div.id = "conversejs";
-    div.class = "theme-concord";
-    document.body.appendChild(div);
+    loadCSS('widget/converse.css');
+    loadCSS('widget/stylesheets/concord.css');
+    loadJS('widget/converse.js');
 
-    var head  = document.getElementsByTagName('head')[0];
-    var link  = document.createElement('link');
-    link.rel  = 'stylesheet';
-    link.type = 'text/css';
-    link.href = 'widget/converse.css';
-    head.appendChild(link);
-
-    var s1 = document.createElement('script');
-    s1.src = "widget/converse.js";
-    s1.async = false;
-    document.body.appendChild(s1);
+    loadJS('widget/irma/jwt-decode.js');
+    loadJS('widget/irma/jquery.js');
+    loadJS('widget/irma/irma.js');
 
     return of;
 

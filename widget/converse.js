@@ -67601,7 +67601,9 @@ _converse_core__WEBPACK_IMPORTED_MODULE_4__["default"].plugins.add('converse-muc
           }
 
           if (!_.isEmpty(changes)) {
-            this.getOwnOccupant().save(changes);
+              // BAO
+              const occupant = this.getOwnOccupant();
+              if (occupant) this.getOwnOccupant().save(changes);
           }
         }
       },
