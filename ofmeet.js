@@ -28,7 +28,7 @@ var ofmeet = (function(of)
 
         chatButton.addEventListener("click", function (e)
         {
-            console.log("chatButton clicked");
+            console.debug("chatButton clicked");
             chatButton.style.visibility = "hidden";
 
             doConverse()
@@ -101,16 +101,15 @@ var ofmeet = (function(of)
         {
             console.debug("getFastPathStatus", resp);
 
-            $(resp).find('field').each(function ()
+            const fields = resp.querySelectorAll('field');
+
+            for (var i=0; i<fields.length; i++)
             {
-                if( $(this).attr('var') == "workgroup#online")
+                if (fields[i].getAttribute("var") == "workgroup#online")
                 {
-                    $(this).find('value').each(function ()
-                    {
-                        opened = $(this).text() == "OPEN";
-                    });
+                     opened = fields[i].querySelector('value').innerHTML == "OPEN";
                 }
-            });
+            }
 
             callback(opened);
 
@@ -414,7 +413,7 @@ var ofmeet = (function(of)
                         {
                             if (qrcode)
                             {
-                                that.el.querySelector('.modal-body').appendChild(qrcode);
+                                that.el.querySelector('.modal-body').innerHTML = '<img src="' + qrcode + '" />';
                             }
 
                         }, false);
@@ -425,7 +424,8 @@ var ofmeet = (function(of)
 
                     clearQRCode() {
                         var callback = this.model.get("callback");
-                        if (callback) callback();
+                        var token = this.model.get("token");
+                        if (callback && token) callback(token);
                     },
                     startSession() {
                         this.el.querySelector('.modal-status').innerHTML = "Please follow the instructions in your IRMA app";
@@ -443,60 +443,60 @@ var ofmeet = (function(of)
 
                     var qrcodeDialog = null;
 
-                    var success_fun = function(data)
+                    var userCancelled = function(token)
                     {
-                        var json = jwt_decode(data);
-                        console.log("Authentication successful token:", data, json);
-                    }
-                    var cancel_fun = function() {
-                        console.error("IRMA Authentication cancelled!");
-                    }
-                    var error_fun = function() {
-                        console.error("Authentication failed!");
-                    }
+                        const url = "https://" + server + "/irmaproxy/session/" + token;
 
-                    IRMA.init("https://demo.irmacard.org/tomcat/irma_api_server/api/v2/");
+                        fetch(url, {method: "DELETE"}).then(function(response){ return response.text()}).then(function(response)
+                        {
+                            console.log('irma/cancel ok', response);
+
+                        }).catch(function (err) {
+                            console.error('irma/cancel error', err);
+                        });
+                    }
 
                     _converse.connection.addHandler(function(message)
                     {
                         console.debug('irma handler', message);
 
-                        var cancelIrma = function()
-                        {
-                            console.debug('irma cancelled');
-                        }
+                        const irmaTag = message.querySelector('irma');
 
-                        $(message).find('irma').each(function ()
+                        if (irmaTag)
                         {
-                            const action = $(this).attr('action');
+                            const action = irmaTag.getAttribute('action');
+                            console.debug("irma/reveal", action, irmaTag);
 
                             if (action == "reveal")
                             {
-                                console.debug("irma/reveal", $(this).text());
+                                const pkg = JSON.parse(irmaTag.innerHTML);
 
-                                const json = JSON.parse($(this).text());
-                                qrcodeDialog = IRMA.processInitialServerMessage(json, success_fun, cancel_fun, error_fun, QRCodeDialog);
+                                irma.handleSession(pkg.sessionPtr, {server: "https://" + server + "/irmaproxy", token: pkg.token, method: 'url'}).then(result =>
+                                {
+                                    console.debug("irma/result", result);
+
+                                    qrcodeDialog = new QRCodeDialog({'model': new converse.env.Backbone.Model({title: 'IRMA Verification', callback: userCancelled, qrcode: result, token: pkg.token}) });
+                                    qrcodeDialog.show();
+                                });
                             }
                             else
 
                             if (action == "status")
                             {
-                                const status = $(this).text()
-                                console.debug("irma/status", status);
+                                console.debug("irma/status", irmaTag.innerHTML);
                             }
                             else
 
                             if (action == "done")
                             {
-                                const jwt = $(this).text()
-                                const json = jwt_decode(jwt);
-                                console.debug("irma/done", json);
+                                const payload = JSON.parse(irmaTag.innerHTML);
+                                console.debug("irma/done", payload);
 
                                 if (qrcodeDialog) qrcodeDialog.modal.hide();
-                                if (of.view) of.view.showHelpMessages(["Verified - email: " + json.attributes["pbdf.pbdf.email.email"] + " " + "phone: " + json.attributes["pbdf.pbdf.mobilenumber.mobilenumber"]]);
+                                if (of.view) of.view.showHelpMessages(["Email: " + payload.disclosed[0][0].rawvalue + " verified", "Phone: " + payload.disclosed[1][0].rawvalue + " verified"]);
                             }
 
-                        });
+                        }
 
                         return true;
 
@@ -506,7 +506,7 @@ var ofmeet = (function(of)
 
                 _converse.api.listen.on('chatBoxClosed', function (view)
                 {
-                    console.log("chatBoxClosed", _converse.nickname, view.model.get("nick"), _converse.chatboxviews.model.models.length);
+                    console.debug("chatBoxClosed", _converse.nickname, view.model.get("nick"), _converse.chatboxviews.model.models.length);
 
                     if (_converse.chatboxviews.model.models.length == 0)
                     {
@@ -556,6 +556,8 @@ var ofmeet = (function(of)
                         }, 60000)
                     }
                 });
+
+                console.log("webmeet plugin is ready");
             },
 
             overrides: {
@@ -901,13 +903,13 @@ var ofmeet = (function(of)
     root.innerHTML = '<div class="ofmeet-button bubble"> <a id="chatbutton" class="lwc-chat-button"> <span id="unreadMessageIndicator" class="unreadMessageIndicator"><h3 id="unreadMessageHeading" class="heading">5</h3></span> <span class="lwc-button-icon"> <svg viewBox="0 0 38 35" style="width: inherit"> <path fill="#FFF" fill-rule="evenodd" d="M36.9 10.05c-1-4.27-4.45-7.6-8.8-8.4-2.95-.5-6-.78-9.1-.78-3.1 0-6.15.27-9.1.8-4.35.8-7.8 4.1-8.8 8.38-.4 1.5-.6 3.07-.6 4.7 0 1.62.2 3.2.6 4.7 1 4.26 4.45 7.58 8.8 8.37 2.95.53 6 .45 9.1.45v5.2c0 .77.62 1.4 1.4 1.4.3 0 .6-.12.82-.3l11.06-8.46c2.3-1.53 3.97-3.9 4.62-6.66.4-1.5.6-3.07.6-4.7 0-1.62-.2-3.2-.6-4.7zm-14.2 9.1H10.68c-.77 0-1.4-.63-1.4-1.4 0-.77.63-1.4 1.4-1.4H22.7c.76 0 1.4.63 1.4 1.4 0 .77-.63 1.4-1.4 1.4zm4.62-6.03H10.68c-.77 0-1.4-.62-1.4-1.38 0-.77.63-1.4 1.4-1.4h16.64c.77 0 1.4.63 1.4 1.4 0 .76-.63 1.38-1.4 1.38z"></path></svg> </span> <span id="chatIconText" class="lwc-button-text">Contact us</span> </a></div> <div class="ofmeet-chat"></div>';
     document.body.appendChild(root);
 
+    loadJS('widget/irma/vendors~jwt.js');
+    loadJS('widget/irma/irma.js');
+
     loadCSS('widget/converse.css');
     loadCSS('widget/stylesheets/concord.css');
     loadJS('widget/converse.js');
 
-    loadJS('widget/irma/jwt-decode.js');
-    loadJS('widget/irma/jquery.js');
-    loadJS('widget/irma/irma.js');
 
     return of;
 

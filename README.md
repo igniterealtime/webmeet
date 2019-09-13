@@ -1,10 +1,9 @@
 # WebMeet
-A web component that can be embedded in a web site to provide a fastpath to Pade users providing support or customer services.
+A web component that can be embedded in a web site to provide a fastpath to Pade users
 
 ## Introduction
 This is a full-featured web chat component that can be added to any web page. 
-The component allows visitors of a web site to chat directly with members of a workgroup or team in a multi-user chat (MUC) through an integrated web client. The web component can be customised and re-branded with HTML/CSS.
-
+The component allows visitors of a web site to chat directly with members of a work group or team in a multi-user chat (MUC) through an integrated web client. The web component can be customised and re-branded with HTML/CSS.
 
 It embeds [converse.js](http://www.conversejs.org) in the web site to handle the messaging with Openfire and depending on the configuration, it can initiate a video-conference using [Openfire Meetings](http://github.com/igniterealtime/Openfire-Meetings) or dialback with SIP a telephone number or [FreeSWITCH](http://freeswitch.org/confluence/display/FREESWITCH) audio conference.
 
@@ -31,7 +30,6 @@ Now, you want to add the WebMeet component. You can do that before the </body> t
     <h1>This is my web site!</h1>
     <p>Welcome!</p>
 
-    <fastpath-chat domain="example.com" server="example.com:7443" workgroup="demo"></fastpath-chat>
     <link type="text/css" rel="stylesheet" href="ofmeet.css">
     <script src="ofmeet.js"></script>
     
@@ -39,8 +37,7 @@ Now, you want to add the WebMeet component. You can do that before the </body> t
 </html>
 `````
 
-The <fastpath-chat> tag above provides the config data, the <script/> tag brings in the WebMeet web control and the <link/> tag brings in the default css file to style it. 
-The domain and server are self explanatory. The workgroup name is the name of the FastPath workgroup assigned to the page. If the workgroup is closed or has no available agents, the the user joins a public group chat room withe same name.
+The <script/> tag above brings in the WebMeet web control and the <link/> tag brings in the default css file to style it. 
 Copy the widget folder to the same folder as your index.html page. Thats it!! Reload your web page.
 
 <img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen1.png" />
@@ -59,20 +56,17 @@ converse.initialize({
     theme: 'concord',
     allow_non_roster_messaging: true,
     auto_join_on_invite: true,
+    auto_join_private_chats: ['demo@workgroup.' + location.hostname],
     authentication: 'anonymous',
-    jid: domain,
-    nickname: getNick(),
+    jid: location.hostname,
     auto_away: 300,
     auto_reconnect: true,
-    debug: false,
+    debug: true,
     singleton: true,
     sticky_controlbox: false,
-    muc_show_join_leave: true,
-    muc_show_join_leave_status: false,
-    bosh_service_url: boshUri,
-    websocket_url: wsUri,
+    websocket_url: 'wss://' + location.host + '/ws/',
     message_archiving: 'always',
-    whitelisted_plugins: ["jitsimeet", "audioconf", "webmeet"]
+    whitelisted_plugins: ["jitsimeet", "audioconf"]
 });
 `````
 
