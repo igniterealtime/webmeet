@@ -31,7 +31,7 @@ Now, you want to add the WebMeet component. You can do that before the </body> t
     <h1>This is my web site!</h1>
     <p>Welcome!</p>
     
-    <fastpath-chat hosted="https://igniterealtime.github.io/webmeet" domain="pade.chat" server="pade.chat:443"  workgroup="demo"></fastpath-chat>
+    <fastpath-chat hosted="https://igniterealtime.github.io/webmeet" domain="example.com.chat" server="xmpp.example.com:7443"  workgroup="demo"></fastpath-chat>
     <script src="https://igniterealtime.github.io/webmeet/ofmeet.js"></script>    
     
   </body>
@@ -55,8 +55,8 @@ If an agent responds, a groupchat panel will open. Enter a nick name for the mul
 `````
     <fastpath-chat
         hosted="https://my_web_server/webmeet"
-        domain="pade.chat"
-        server="pade.chat:443"
+        domain="example.com"
+        server="xmpp.example.com:7443"
         workgroup="demo">
     </fastpath-chat>
     <script src="https://my_web_server/webmeet/ofmeet.js"></script>
