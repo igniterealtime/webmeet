@@ -1,0 +1,5 @@
+dev.html
+test.html
+
+# Ignore MacOSX files
+.DS_Store

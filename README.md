@@ -30,18 +30,17 @@ Now, you want to add the WebMeet component. You can do that before the </body> t
   <body>
     <h1>This is my web site!</h1>
     <p>Welcome!</p>
-
-    <fastpath-chat domain="example.com" server="example.com:7443" workgroup="demo"></fastpath-chat>
-    <link type="text/css" rel="stylesheet" href="ofmeet.css">
-    <script src="ofmeet.js"></script>
+    
+    <fastpath-chat hosted="https://igniterealtime.github.io/webmeet" domain="pade.chat" server="pade.chat:443"  workgroup="demo"></fastpath-chat>
+    <script src="https://igniterealtime.github.io/webmeet/ofmeet.js"></script>    
     
   </body>
 </html>
 `````
 
-The <fastpath-chat> tag above provides the config data, the <script/> tag brings in the WebMeet web control and the <link/> tag brings in the default css file to style it. 
-The domain and server are self explanatory. The workgroup name is the name of the FastPath workgroup assigned to the page. If the workgroup is closed or has no available agents, the the user joins a public group chat room withe same name.
-Copy the widget folder to the same folder as your index.html page. Thats it!! Reload your web page.
+The <fastpath-chat> tag above provides the config data and the <script/> tag brings in the WebMeet web control JavaScript. 
+The domain and server attributes of <fastpath-chat> point to your openfire server running FastPath. The workgroup name is the name of the FastPath workgroup assigned to the page. If the workgroup is closed or has no available agents, the the user joins a public group chat room withe same name.
+Reload your web page.
 
 <img src="https://github.com/igniterealtime/webmeet/raw/master/screenshots/screen1.png" />
 
@@ -51,7 +50,19 @@ If an agent responds, a groupchat panel will open. Enter a nick name for the mul
 
 ## Additional considerations
 
-1. The default configuration for Converse.js is to assume that Openfire is configured for the demo workgroup. Edit ofmeet.js to match your preference.
+1. By default, all the supporting web assets and suporting JavaScript libraries are hosted here on Github and the hosted attribute reflects that. To host them locally or elsewhere, change the value of hosted attribute and the src attribute of the <script> tag. 
+
+`````
+    <fastpath-chat
+        hosted="https://my_web_server/webmeet"
+        domain="pade.chat"
+        server="pade.chat:443"
+        workgroup="demo">
+    </fastpath-chat>
+    <script src="https://my_web_server/webmeet/ofmeet.js"></script>
+`````
+
+2. The default configuration for Converse.js is to assume that Openfire is configured for the demo workgroup. Edit ofmeet.js to match your preference.
 
 `````
 converse.initialize({
@@ -76,7 +87,7 @@ converse.initialize({
 });
 `````
 
-2. Edit click2Dial to connect to your Asterisk or FreeSWITCH PBX.
+3. Edit click2Dial to connect to your Asterisk or FreeSWITCH PBX.
 
 `````
 window.click2Dial = {
@@ -102,4 +113,4 @@ window.click2Dial = {
 }
 `````
 
-3. There is a lot more to make this secure for public internet use, but that is beyond the scope of this readme.
+4. There is a lot more to make this secure for public internet use, but that is beyond the scope of this readme.
