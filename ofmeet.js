@@ -73,6 +73,8 @@ var ofmeet = (function(of)
                 bosh_service_url: boshUri,
                 websocket_url: wsUri,
                 message_archiving: 'always',
+                locales_url: hosted + '/widget/locale/{{{locale}}}/LC_MESSAGES/converse.json',
+                sounds_path: hosted + '/widget/sounds/',
                 whitelisted_plugins: ["jitsimeet", "audioconf", "webmeet"]
             });
         }
