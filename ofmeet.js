@@ -1,6 +1,6 @@
 var ofmeet = (function(of)
 {
-    let domain, server, workgroup, hosted;
+    let domain, server, workgroup, hosted, plugins, conversation;
 
     const fpDiv = document.querySelector("fastpath-chat");
 
@@ -10,12 +10,16 @@ var ofmeet = (function(of)
         server = fpDiv.getAttribute("server");
         workgroup = fpDiv.getAttribute("workgroup");
         hosted = fpDiv.getAttribute("hosted");
+        plugins = fpDiv.getAttribute("plugins");
+        conversation = fpDiv.getAttribute("conversation");
     }
 
     if (!domain) domain = location.hostname;
     if (!server) server = location.host;
     if (!hosted) hosted = "https://igniterealtime.github.io/webmeet";
     if (!workgroup) workgroup = "demo";
+    if (!plugins) plugins = "webmeet,jitsimeet";
+    if (!conversation) conversation = "false";
 
     const fastpath = workgroup + '@workgroup.' + domain;
     const roomJid = workgroup + '@conference.' + domain;
@@ -47,15 +51,18 @@ var ofmeet = (function(of)
 
     function doConverse(credentials)
     {
-
+        document.getElementById("chatloader").style.visibility = "visible";
 
         if (!_converse)
         {
-            setupAudioConf();
-            setupJitsiMeet();
-            setupWebMeet();
+            console.debug('converse plugins', plugins);
 
-            converse.initialize({
+            if (plugins.indexOf("webmeet") > -1) setupWebMeet();
+            if (plugins.indexOf("audioconf") > -1) setupAudioConf();
+            if (plugins.indexOf("jitsimeet") > -1) setupJitsiMeet();
+
+
+            const config = {
                 auto_login: true,
                 theme: 'concord',
                 allow_non_roster_messaging: true,
@@ -75,8 +82,11 @@ var ofmeet = (function(of)
                 message_archiving: 'always',
                 locales_url: hosted + '/widget/locale/{{{locale}}}/LC_MESSAGES/converse.json',
                 sounds_path: hosted + '/widget/sounds/',
-                whitelisted_plugins: ["jitsimeet", "audioconf", "webmeet"]
-            });
+                whitelisted_plugins: plugins.split(",")
+            };
+
+            console.debug('converse config', config);
+            converse.initialize(config);
         }
         else {
             openFastPath();
@@ -91,11 +101,43 @@ var ofmeet = (function(of)
 
             if (open)
             {
-                _converse.api.chats.open(fastpath);
+                if (conversation == "true")
+                {
+                    _converse.api.chats.open(fastpath);
+                }
+                else {
+                    joinWorkgroup({});
+                }
+
             }
             else {
                 _converse.api.rooms.open(roomJid, {nick: getNick()});
             }
+        });
+    }
+
+    function joinWorkgroup(form)
+    {
+        let iq = converse.env.$iq({to: fastpath, type: 'set'}).c('join-queue', {xmlns: 'http://jabber.org/protocol/workgroup'});
+        iq.c('queue-notifications').up();
+        iq.c('x', {xmlns: 'jabber:x:data', type: 'submit'});
+
+        const items = Object.getOwnPropertyNames(form)
+
+        for (let i=0; i< items.length; i++)
+        {
+            iq.c('field', {var: items[i]}).c('value').t(form[items[i]]).up().up();
+        }
+
+        iq.up();
+
+        _converse.connection.sendIQ(iq, function (res)
+        {
+            console.debug('join workgroup ok', res);
+
+        }, function (err) {
+            console.error('join workgroup error', err);
+            document.getElementById("chatloader").style.visibility = "hidden";
         });
     }
 
@@ -141,7 +183,7 @@ var ofmeet = (function(of)
 
     function setupJitsiMeet()
     {
-        var Strophe = converse.env.Strophe, _converse = null, dayjs = converse.env.dayjs;
+        var Strophe = converse.env.Strophe, dayjs = converse.env.dayjs;
         var MeetDialog = null, meetDialog = null;
 
         converse.plugins.add("jitsimeet", {
@@ -389,8 +431,6 @@ var ofmeet = (function(of)
 
     function setupWebMeet()
     {
-        var _converse = null;
-
         converse.plugins.add("webmeet", {
             dependencies: [],
 
@@ -443,71 +483,20 @@ var ofmeet = (function(of)
 
                 _converse.api.listen.on('connected', function()
                 {
-                    console.debug('irma connected');
-
+                    console.debug('webmeet connected');
                     openFastPath();
+                });
 
-                    var qrcodeDialog = null;
+                _converse.api.listen.on('chatRoomOpened', function (view)
+                {
+                    console.debug("chatRoomOpened", _converse.nickname, view.model.get("nick"), _converse.chatboxviews.model.models.length);
+                    document.getElementById("chatloader").style.visibility = "hidden";
+                });
 
-                    var userCancelled = function(token)
-                    {
-                        const url = "https://" + server + "/irmaproxy/session/" + token;
-
-                        fetch(url, {method: "DELETE"}).then(function(response){ return response.text()}).then(function(response)
-                        {
-                            console.log('irma/cancel ok', response);
-
-                        }).catch(function (err) {
-                            console.error('irma/cancel error', err);
-                        });
-                    }
-
-                    _converse.connection.addHandler(function(message)
-                    {
-                        console.debug('irma handler', message);
-
-                        const irmaTag = message.querySelector('irma');
-
-                        if (irmaTag)
-                        {
-                            const action = irmaTag.getAttribute('action');
-                            console.debug("irma/reveal", action, irmaTag);
-
-                            if (action == "reveal")
-                            {
-                                const pkg = JSON.parse(irmaTag.innerHTML);
-
-                                irma.handleSession(pkg.sessionPtr, {server: "https://" + server + "/irmaproxy", token: pkg.token, method: 'url'}).then(result =>
-                                {
-                                    console.debug("irma/result", result);
-
-                                    qrcodeDialog = new QRCodeDialog({'model': new converse.env.Backbone.Model({title: 'IRMA Verification', callback: userCancelled, qrcode: result, token: pkg.token}) });
-                                    qrcodeDialog.show();
-                                });
-                            }
-                            else
-
-                            if (action == "status")
-                            {
-                                console.debug("irma/status", irmaTag.innerHTML);
-                            }
-                            else
-
-                            if (action == "done")
-                            {
-                                const payload = JSON.parse(irmaTag.innerHTML);
-                                console.debug("irma/done", payload);
-
-                                if (qrcodeDialog) qrcodeDialog.modal.hide();
-                                if (of.view) of.view.showHelpMessages(["Email: " + payload.disclosed[0][0].rawvalue + " verified", "Phone: " + payload.disclosed[1][0].rawvalue + " verified"]);
-                            }
-
-                        }
-
-                        return true;
-
-                    }, "http://igniterealtime.org/xmlns/xmpp/irma", 'message');
-
+                _converse.api.listen.on('chatBoxInitialized', function (view)
+                {
+                    console.debug("chatBoxInitialized", _converse.nickname, view.model.get("nick"), _converse.chatboxviews.model.models.length);
+                    document.getElementById("chatloader").style.visibility = "hidden";
                 });
 
                 _converse.api.listen.on('chatBoxClosed', function (view)
@@ -889,8 +878,12 @@ var ofmeet = (function(of)
     of.doExit = function doExit()
     {
         document.getElementById("chatbutton").style.visibility = "visible";
-
         of.doBadge(0);
+    }
+
+    of.joinWorkgroupQueue = function joinWorkgroupQueue(form)
+    {
+        joinWorkgroup(form);
     }
 
     of.loaded = false;
@@ -906,14 +899,10 @@ var ofmeet = (function(of)
     document.body.appendChild(div);
 
     var root = document.createElement("div");
-    root.innerHTML = '<div class="ofmeet-button bubble"> <a id="chatbutton" class="lwc-chat-button"> <span id="unreadMessageIndicator" class="unreadMessageIndicator"><h3 id="unreadMessageHeading" class="heading">5</h3></span> <span class="lwc-button-icon"> <svg viewBox="0 0 38 35" style="width: inherit"> <path fill="#FFF" fill-rule="evenodd" d="M36.9 10.05c-1-4.27-4.45-7.6-8.8-8.4-2.95-.5-6-.78-9.1-.78-3.1 0-6.15.27-9.1.8-4.35.8-7.8 4.1-8.8 8.38-.4 1.5-.6 3.07-.6 4.7 0 1.62.2 3.2.6 4.7 1 4.26 4.45 7.58 8.8 8.37 2.95.53 6 .45 9.1.45v5.2c0 .77.62 1.4 1.4 1.4.3 0 .6-.12.82-.3l11.06-8.46c2.3-1.53 3.97-3.9 4.62-6.66.4-1.5.6-3.07.6-4.7 0-1.62-.2-3.2-.6-4.7zm-14.2 9.1H10.68c-.77 0-1.4-.63-1.4-1.4 0-.77.63-1.4 1.4-1.4H22.7c.76 0 1.4.63 1.4 1.4 0 .77-.63 1.4-1.4 1.4zm4.62-6.03H10.68c-.77 0-1.4-.62-1.4-1.38 0-.77.63-1.4 1.4-1.4h16.64c.77 0 1.4.63 1.4 1.4 0 .76-.63 1.38-1.4 1.38z"></path></svg> </span> <span id="chatIconText" class="lwc-button-text">Contact us</span> </a></div> <div class="ofmeet-chat"></div>';
+    root.innerHTML = '<div class="ofmeet-button bubble"><img id="chatloader" class="lwc-chat-button" style="visibility:hidden" src="' + hosted + '/widget/ajax-loader.gif" /> <a id="chatbutton" class="lwc-chat-button"> <span id="unreadMessageIndicator" class="unreadMessageIndicator"><h3 id="unreadMessageHeading" class="heading">5</h3></span> <span class="lwc-button-icon"> <svg viewBox="0 0 38 35" style="width: inherit"> <path fill="#FFF" fill-rule="evenodd" d="M36.9 10.05c-1-4.27-4.45-7.6-8.8-8.4-2.95-.5-6-.78-9.1-.78-3.1 0-6.15.27-9.1.8-4.35.8-7.8 4.1-8.8 8.38-.4 1.5-.6 3.07-.6 4.7 0 1.62.2 3.2.6 4.7 1 4.26 4.45 7.58 8.8 8.37 2.95.53 6 .45 9.1.45v5.2c0 .77.62 1.4 1.4 1.4.3 0 .6-.12.82-.3l11.06-8.46c2.3-1.53 3.97-3.9 4.62-6.66.4-1.5.6-3.07.6-4.7 0-1.62-.2-3.2-.6-4.7zm-14.2 9.1H10.68c-.77 0-1.4-.63-1.4-1.4 0-.77.63-1.4 1.4-1.4H22.7c.76 0 1.4.63 1.4 1.4 0 .77-.63 1.4-1.4 1.4zm4.62-6.03H10.68c-.77 0-1.4-.62-1.4-1.38 0-.77.63-1.4 1.4-1.4h16.64c.77 0 1.4.63 1.4 1.4 0 .76-.63 1.38-1.4 1.38z"></path></svg> </span> <span id="chatIconText" class="lwc-button-text">Contact us</span> </a></div> <div class="ofmeet-chat"></div>';
     document.body.appendChild(root);
 
     loadCSS('ofmeet.css');
-
-    loadJS('widget/irma/vendors~jwt.js');
-    loadJS('widget/irma/irma.js');
-
     loadCSS('widget/converse.css');
     loadCSS('widget/stylesheets/concord.css');
     loadJS('widget/converse.js');

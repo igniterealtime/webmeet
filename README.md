@@ -57,13 +57,15 @@ If an agent responds, a groupchat panel will open. Enter a nick name for the mul
         hosted="https://my_web_server/webmeet"
         domain="example.com"
         server="xmpp.example.com:7443"
+        conversation="false"
         workgroup="demo">
     </fastpath-chat>
     <script src="https://my_web_server/webmeet/ofmeet.js"></script>
 `````
 
-2. The default configuration for Converse.js is to assume that Openfire is configured for the demo workgroup. Edit ofmeet.js to match your preference.
+The above settings are for converse.js is to assume that Openfire is configured for the demo workgroup. Chatbot conversation is disabled and a blank request will made for an agent.  
 
+2. Edit ofmeet.js to match your preference.
 `````
 converse.initialize({
     auto_login: true,
@@ -87,7 +89,7 @@ converse.initialize({
 });
 `````
 
-3. Edit click2Dial to connect to your Asterisk or FreeSWITCH PBX.
+3. If you whitelist (enable) the converse.js audioconf plugin, then edit click2Dial to connect to your Asterisk/FreeSWITCH PBX or Jitsi Meet Audio conference bridge.
 
 `````
 window.click2Dial = {
